@@ -58,9 +58,15 @@ namespace wexus
     class dbtimestamp;
 
     /// easy convertion
-    inline bool string_to_dbint(const std::string &s, dbint &out) {
-      return scopira::tool::string_to_int(s, *reinterpret_cast<int*>(&out));
-    }
+#ifdef PLATFORM_64
+    inline bool string_to_dbint(const std::string &s, dbint &out) { return scopira::tool::string_to_int(s, out); }
+    inline bool read_dbint(scopira::tool::itflow_i &f, dbint &i) { return f.read_int(i); }
+    inline void write_dbint(scopira::tool::otflow_i &f, const dbint &i) { return f.write_int(i); }
+#else
+    inline bool string_to_dbint(const std::string &s, dbint &out) { return scopira::tool::string_to_long(s, out); }
+    inline bool read_dbint(scopira::tool::itflow_i &f, dbint &i) { return f.read_long(i); }
+    inline void write_dbint(scopira::tool::otflow_i &f, const dbint &i) { return f.write_long(i); }
+#endif
 
     /// today!
     dbdate today(void);

@@ -19,6 +19,7 @@
 
 #include <scopira/tool/object.h>
 #include <scopira/tool/array.h>
+#include <scopira/tool/platform.h>
 #include <wexus/core/app.h>
 #include <wexus/db/connection.h>
 #include <wexus/db/pool.h>
@@ -57,7 +58,7 @@ namespace wexus
 class wexus::ui::form_event
 {
   private:
-    int m_tag;
+    intptr_t m_tag;
     const std::string *m_command;
     core::app_event *m_app_event;
 
@@ -82,7 +83,7 @@ class wexus::ui::form_event
     ~form_event();
 
     /// gets the target tag
-    int get_tag(void) const { return m_tag; }
+    intptr_t get_tag(void) const { return m_tag; }
     /// gets the command
     const std::string & get_command(void) const { return *m_command; }
     /// get a form field, if any
@@ -131,7 +132,7 @@ class wexus::ui::element : public virtual scopira::tool::object
      * Get my "id" (unique tag)
      * @author Aleksander Demko
      */
-    int get_tag(void) const { return reinterpret_cast<int>(this); }
+    intptr_t get_tag(void) const { return reinterpret_cast<intptr_t>(this); }
 
     /**
      * Gets the parent form

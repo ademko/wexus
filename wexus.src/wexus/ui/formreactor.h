@@ -76,6 +76,8 @@ class wexus::ui::form_session : virtual public wexus::core::session_i
 class wexus::ui::form_factory_i
 {
   public:
+    virtual ~form_factory_i() { }
+  public:
     /// generates and returns a form on the heap
     virtual wexus::ui::element * make_form(void) = 0;
 };

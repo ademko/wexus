@@ -155,7 +155,7 @@ bool check_form::check(bool b, const std::string &msg)
 
 bool check_form::get(const std::string &fieldname, wexus::db::dbint &out) const
 {
-  string_to_long(my_get_form_field(fieldname), out);
+  string_to_dbint(my_get_form_field(fieldname), out);
   return true;
 }
 

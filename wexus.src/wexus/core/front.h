@@ -56,6 +56,8 @@ namespace wexus
 class wexus::core::front_event_i
 {
   public:
+    virtual ~front_event_i() { }
+  public:
     /// sets the content type of the event
     virtual void set_content_type(const std::string& type) = 0;
 
@@ -286,6 +288,8 @@ class wexus::core::front_i : public virtual scopira::tool::job_i
  */ 
 class wexus::core::front_peer_i
 {
+  public:
+    virtual ~front_peer_i() { }
   public:
     /// the front should call this on event request
     virtual void handle_front_event(front_event_i& evt) = 0;

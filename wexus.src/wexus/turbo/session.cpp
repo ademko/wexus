@@ -61,8 +61,8 @@ bool user_session::load(scopira::tool::iobjflow_i& in)
   return
     session_i::load(in) &&
 
-    in.read_long(userid) &&
-    in.read_long(rank) &&
+    wexus::db::read_dbint(in, userid) &&
+    wexus::db::read_dbint(in, rank) &&
     username.load(in) &&
     realname.load(in) &&
     email.load(in);
@@ -72,8 +72,8 @@ void user_session::save(scopira::tool::oobjflow_i& out) const
 {
   session_i::save(out);
 
-  out.write_long(userid);
-  out.write_long(rank);
+  wexus::db::write_dbint(out, userid);
+  wexus::db::write_dbint(out, rank);
   username.save(out);
   realname.save(out);
   email.save(out);
