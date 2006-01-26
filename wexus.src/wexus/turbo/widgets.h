@@ -213,6 +213,24 @@ class wexus::turbo::form
      */ 
     std::string submit_button(const std::string &desc, const std::string &fieldname = "") const;
 
+    /**
+     * This "complex" widget represents a collection of options that make up
+     * a drop down box.
+     *
+     * @author Aleksander Demko
+     */
+    class drop_down
+    {
+      public:
+        /// ctor
+        drop_down(form &f, const std::string &fieldname, int viewsize = 1);
+        /// dtor
+        ~drop_down();
+
+        /// call this once for every option in the field
+        void option(const std::string &val, const std::string &desc) const;
+    };
+
   protected:
     std::string m_formname;
 

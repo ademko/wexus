@@ -241,3 +241,13 @@ void wexus::turbo::t_assert_rank(int minrank, const std::string &redirect_to_enc
   throw t_assert_error();
 }
 
+void wexus::turbo::t_assert_session(void *p, std::string encodedurl)
+{
+  if (p)
+    return;
+
+  redirect_to(encodedurl);
+
+  throw t_assert_error();
+}
+

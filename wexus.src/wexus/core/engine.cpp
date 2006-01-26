@@ -71,7 +71,7 @@ void core::engine::handle_front_event(front_event_i& evt)
   // then a list-iteration would be better than a map look up.
   // if we have many, then well need a map
 
-  COREOUT << "  engine: handling \"" << evt.get_request() << "\"\n";
+  COREOUT << " engine \"" << evt.get_request() << "\"\n";
 
   // check for empty
   if (evt.get_request().empty()) {

@@ -161,13 +161,17 @@ bool statement::close_cursor(void)
   // reset bind counts
   m_param_count = m_col_count = bind_start_count;
 
-  SQLRETURN Ret;
+  //SQLRETURN Ret;
 
-  Ret = SQLCloseCursor(m_handle);
+  //Ret = SQLCloseCursor(m_handle);
+  SQLFreeStmt(m_handle, SQL_RESET_PARAMS);
+  SQLFreeStmt(m_handle, SQL_UNBIND);
+  SQLFreeStmt(m_handle, SQL_CLOSE);
 
   m_validfetch = false;
 
-  return Ret == SQL_SUCCESS || Ret == SQL_SUCCESS_WITH_INFO;
+  return true;
+  //return Ret == SQL_SUCCESS || Ret == SQL_SUCCESS_WITH_INFO;
 }
 
 short statement::get_num_cols(void) const

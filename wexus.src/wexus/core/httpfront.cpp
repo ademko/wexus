@@ -327,6 +327,8 @@ void http_thread::get_request(request_t& request)
     //COREOUT.write(&buf[0], read_size);
 #endif
 
+    // if we havent completed reading ourheaders, lets append this block to the message block
+    // and check it for the important double-crlf marker
     if (!read_headers) {
       // start searching for the double crlf at the beginning if this is the
       // first time searching or from the end-3 (first 3 chars of the double
@@ -342,7 +344,8 @@ void http_thread::get_request(request_t& request)
       dbl_crlf_pos = std::search(message.begin()+search_pos, message.end(), dbl_crlf, dbl_crlf+dbl_crlf_size);
     }
 
-    // have we final found the end of the headers?
+    // since we dont have our headers, have we found it (in the previous block?)
+    // if so, parse it
     if (!read_headers && dbl_crlf_pos != message.end()) {
       // split into request line and headers
       std::string txt_data(message.begin(), dbl_crlf_pos);
@@ -386,6 +389,7 @@ void http_thread::get_request(request_t& request)
       if (header != request.headers.end()) {
         // get the content length
         content_length = string_to_int((*header).second);
+        read_body = content_length == 0;      // if the content length is 0, lets skip the body outright
       } else
         read_body = true; // set to true since we have none to read anyway
 
@@ -401,13 +405,16 @@ void http_thread::get_request(request_t& request)
       } else
         body_write_size = 0;
     } else if (read_headers) {
+      // ok, we've read the headers in a previous loop
+      // lets mark this whole network byte block as writable to the body part of our message
+
       // content length and the amount read from the socket may differ,
       // write the smaller of the two sizes
       body_write_size = std::min(content_length-request.body.size(), read_size);
       body_buf_pos = &buf[0];
     }
 
-    // write body data
+    // lets append this portion to the body portion of our request
     if (read_headers && !read_body) {
       // check that we received a length
       // if not then set the status
@@ -425,7 +432,7 @@ void http_thread::get_request(request_t& request)
         read_body = true;
     }
     
-    // all done
+    // everything is done [todo simplify the checking here?]
     if (read_headers && read_body) {
       // body size must not be larger than the size specified by content length
       assert(request.body.size() <= content_length);
@@ -455,8 +462,9 @@ void http_thread::parse_request(request_t& request)
 
   if (request.method == "GET") {
     // nothing for now
-  } else
-    if (request.method == "POST") {
+  } else if (request.method == "POST" && request.body.size() == 0) {
+    // do nothing, this is ok
+  } else if (request.method == "POST") {
     // retrieve buffer data and put it into a string
     flow_i::byte_t* buffer = request.body.c_array();
     std::string enc_data(reinterpret_cast<char*>(buffer), request.body.size());
@@ -537,11 +545,11 @@ void http_thread::run()
       locker_ptr<thread_data<http_front::clientq_t> > lk_data(m_shared_data);
 
       // ** Temporary
-      {
+      /*{
         locker_ptr<int> lk_count(m_pool.m_data);
         (*lk_count)++;
         COREOUT << "Idle Threads: " << (*lk_count) << '\n';
-      }
+      }*/
       // ** Temporary
 
       // break out of loop if shutting down
@@ -552,11 +560,11 @@ void http_thread::run()
         m_shared_data.pm_condition.wait(m_shared_data.pm_mutex);
 
       // ** Temporary
-      {
+      /*{
         locker_ptr<int> lk_count(m_pool.m_data);
         (*lk_count)--;
         COREOUT << "Idle Threads: " << (*lk_count) << '\n';
-      }
+      }*/
       // ** Temporary
 
       // break out of loop if shutting down
@@ -567,7 +575,7 @@ void http_thread::run()
       lk_data->m_data.pop_front();
     }//locker_ptr
 
-    COREOUT << "http-front: connected to " << m_client->get_addr() << '\n';
+    COREOUT << "http_front " << m_client->get_addr();
 
     request_t request;
     // get the request
@@ -575,7 +583,7 @@ void http_thread::run()
     // send a reply
     send_reply(request);
 
-    COREOUT << "http-front: disconnected from " << m_client->get_addr() << '\n';
+    //COREOUT << "http-front: disconnected from " << m_client->get_addr() << '\n';
 
     m_client = 0;
   }//while

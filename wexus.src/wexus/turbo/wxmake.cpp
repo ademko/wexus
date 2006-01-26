@@ -489,7 +489,7 @@ int make_app(const std::string &appname)
   //TODO optional force-overwrite mode?
 
   if (file(appname + ".h").exists())
-    OUTPUT << appname << ".h already exists\n";
+    OUTPUT << appname << ".h exists\n";
   else {
     fileflow outf(appname + ".h", fileflow::output_c);
 
@@ -521,7 +521,7 @@ int make_app(const std::string &appname)
   }
 
   if (file(appname + ".cpp").exists())
-    OUTPUT << appname << ".cpp already exists\n";
+    OUTPUT << appname << ".cpp exists\n";
   else {
     fileflow outf(appname + ".cpp", fileflow::output_c);
 
@@ -579,7 +579,7 @@ int make_app(const std::string &appname)
 int make_controller(const std::string &controllername, const std::string &methods)
 {
   if (file(controllername + "_co.h").exists())
-    OUTPUT << controllername << "_co.h already exists\n";
+    OUTPUT << controllername << "_co.h exists\n";
   else {
     fileflow outf(controllername + "_co.h", fileflow::output_c);
 
@@ -613,7 +613,7 @@ int make_controller(const std::string &controllername, const std::string &method
   }
 
   if (file(controllername + "_co.cpp").exists())
-    OUTPUT << controllername << "_co.cpp already exists\n";
+    OUTPUT << controllername << "_co.cpp exists\n";
   else {
     fileflow outf(controllername + "_co.cpp", fileflow::output_c);
 
@@ -639,7 +639,7 @@ int make_controller(const std::string &controllername, const std::string &method
       "void " << controllername << "_co::index(void)\n"
       "{\n"
       "  EVENT.output() << \"Hello, world\";\n"
-      "};\n\n";
+      "}\n\n";
 
     OUTPUT << controllername << "_co.cpp created\n";
   }
@@ -650,7 +650,7 @@ int make_controller(const std::string &controllername, const std::string &method
   for (int m=0; m<methlist.size(); ++m) {
     std::string filename = controllername + "_co." + methlist[m] + ".wx";
     if (file(filename).exists()) {
-      OUTPUT << filename << " already exists\n";
+      OUTPUT << filename << " exists\n";
       continue;
     }
 

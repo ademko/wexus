@@ -31,6 +31,14 @@ namespace wexus
     void t_assert(bool b);
     void t_assert(bool b, const std::string &msg);
     void t_assert_rank(int minrank, const std::string &redirect_to_encoded_url);
+    /**
+     * If p is false, assert and error and redirect_to the encodedurl.
+     * p will usually be the contenst of session.get()
+     *
+     * @author Aleksander Demko
+     */ 
+    void t_assert_session(void *p, std::string encodedurl);
+
     //void t_assert_noerrors(void);
 
     /*inline bool check_hassession(void) {

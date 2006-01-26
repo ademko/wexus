@@ -275,6 +275,26 @@ std::string form::submit_button(const std::string &desc, const std::string &fiel
   return ret;
 }
 
+form::drop_down::drop_down(form &f, const std::string &fieldname, int viewsize)
+{
+  EVENT.output() << "<SELECT NAME=\"" << f.my_field(fieldname) <<
+    "\" SIZE=\"" << viewsize << "\">\n";
+}
+
+form::drop_down::~drop_down()
+{
+  EVENT.output() << "</SELECT>\n";
+}
+
+void form::drop_down::option(const std::string &val, const std::string &desc) const
+{
+  EVENT.output() << "<OPTION VALUE=\"";
+  EVENT.html_output() << val;
+  EVENT.output() << "\">";
+  EVENT.html_output() << desc;
+  EVENT.output() << "</OPTION>\n";
+}
+
 std::string form::my_field(const std::string &fieldname) const
 {
   if (m_formname.empty())
