@@ -73,7 +73,7 @@ void core::file_quitfront::run(void)
     sleep(10000);
 
     if (!test_filequit(m_filename)) {
-      COREOUT << "file-quitfront: signalling stopage...\n";
+      COREOUT << "file_quitfront " << m_filename << " nonzero_quitting\n";
       m_alive = false;
       get_peer()->handle_shutdown();
     }

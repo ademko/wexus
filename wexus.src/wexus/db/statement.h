@@ -141,28 +141,6 @@ class wexus::db::statement : public wexus::db::handle
     /// data access, col # is 0-based
     bool get_timestamp(short col, dbtimestamp &out) const;
 
-    /// data access
-    /*bool get_int(const std::string &colname, dbint &out) const;
-    /// data access
-    bool get_double(const std::string &colname, dbdouble &out) const;
-    /// data access
-    bool get_string(const std::string &colname, dbstring &out) const;
-    /// data access
-    bool get_date(const std::string &colname, dbdate &out) const;
-    /// data access
-    bool get_timestamp(const std::string &colname, dbtimestamp &out) const;
-
-    /// data access (super safe, always works)
-    dbint get_int(const std::string &colname) const;
-    /// data access (super safe, always works)
-    dbdouble get_double(const std::string &colname) const;
-    /// data access (super safe, always works)
-    dbstring get_string(const std::string &colname, int stringbufsize = 256) const;
-    /// data access (super safe, always works)
-    dbdate get_date(const std::string &colname) const;
-    /// data access (super safe, always works)
-    dbtimestamp get_timestamp(const std::string &colname) const;*/
-
     /// nice data access routine (super safe, always works)
     bool is_null(const std::string &colname) const;
     /// nice data access routine (super safe, always works)

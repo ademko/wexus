@@ -65,7 +65,7 @@ bool check_form::is_maxlength(const std::string &fieldname, int maxlength)
 
 bool check_form::is_email(const std::string &fieldname)
 {
-  scopira::tool::regex emailex("^[^[:space:]]+\\@[^[:space:]]+\\.[[:alpha:]]{2,3}$");
+  scopira::tool::regex emailex("^[^[:space:]]+\\@[^[:space:]]+\\.[[:alpha:]]{2,5}$");   // how many chars can TLDs have no? more than 5?
   return emailex.match(my_get_form_field(fieldname));
 }
 
@@ -73,6 +73,13 @@ bool check_form::is_username(const std::string &fieldname)
 {
   scopira::tool::regex usernameex("^[[:alnum:]]+$");
   return usernameex.match(my_get_form_field(fieldname));
+}
+
+bool check_form::is_password(const std::string &fieldname)
+{
+  const std::string &s = my_get_form_field(fieldname);
+
+  return s.size()>=4 && s.size()<=20;
 }
 
 bool check_form::check_notnull(const std::string &fieldname)
@@ -141,6 +148,16 @@ bool check_form::check_username(const std::string &fieldname)
 
   if (!ret)
     EVENT.add_error(my_field(fieldname), fieldname + " can only contain letters and numbers");
+
+  return ret;
+}
+
+bool check_form::check_password(const std::string &fieldname)
+{
+  bool ret = is_password(fieldname);
+
+  if (!ret)
+    EVENT.add_error(my_field(fieldname), fieldname + " must be a valid password (4-20 characters in length)");
 
   return ret;
 }

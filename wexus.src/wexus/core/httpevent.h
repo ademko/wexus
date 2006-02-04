@@ -11,41 +11,97 @@
  *
  */
 
-#ifndef __INCLUDED_WEXUS_CORE_WEBEVENT_HPP_H__
-#define __INCLUDED_WEXUS_CORE_WEBEVENT_HPP_H__
+#ifndef __INCLUDED_WEXUS_CORE_HTTPEVENT_H__
+#define __INCLUDED_WEXUS_CORE_HTTPEVENT_H__
 
+#include <scopira/tool/bufferflow.h>
 #include <wexus/core/front.h>
+#include <wexus/core/http.h>
 
 namespace wexus
 {
   namespace core
   {
-    class http_event_imp;
+    class http_event;
   }
 }
 
 /**
- * a front event specifically for web interfaces
+ * The http front_event_i implementation and event object.
+ * This is sent back to the engine to be handled by the various applications.
  *
- * @author Andrew Kaspick
- */
-class wexus::core::http_event_imp : public virtual wexus::core::front_event_imp
+ * @author Aleksander Demko
+ */ 
+class wexus::core::http_event : public wexus::core::front_event_i
 {
   public:
-    /// sends response line and header data
-    virtual bool send_headers(void) = 0;
-    /// sends body of the response
-    virtual void send_body(void) = 0;
+    /**
+     * Constructor. Initial stuff via direct member access (yes, it's ok because
+     * this is a tightly coupled class with the http front anyways)
+     * 
+     * @author Aleksander Demko
+     */
+    http_event(scopira::tool::netflow &_rawbuf);
+
+    // front_event_i stuff
+
+    virtual void set_content_type(const std::string& type);
+    virtual void set_content_size(int size) { pm_content_size = size; }
+    virtual const std::string& get_request(void) const { return pm_uri; }
+    virtual scopira::tool::oflow_i& get_output(void) { return pm_buffer; }
+    virtual scopira::tool::oflow_i& get_raw_output(void);
+    virtual void send_file(const std::string& name, size_t speed = 0);
+    virtual void set_server_cookie(const std::string& name, const std::string& value,
+      const std::string& path, scopira::tool::timestamp expires = -1, const std::string& domain = "");
+    virtual bool has_client_cookie(const std::string& name) const;
+    virtual void get_client_cookies(const std::string& name, std::vector<std::string>& values) const;
+    virtual bool has_form_field(const std::string& name) const;
+    virtual const std::string& get_form_field(const std::string& name) const;
+    virtual void set_redirect_url(const std::string& url) { pm_redirect_url = url; }
+    virtual void set_modified_time(const scopira::tool::timestamp& mod_time) { pm_modified_time = mod_time; }
+    virtual bool get_client_addr(scopira::tool::netaddr &out) const { out = pm_client_addr; return true; }
+
+    // http_front specific stuff
 
     /// creates an error page
-    virtual void create_error_page(int status, const std::string& message);
+    void create_error_page(int status, const std::string& message);
+
+    /// sends response line and header data
+    bool send_headers(void);
+    /// sends body of the response
+    void send_body(void);
 
   protected:
-    /// sends all cookies set on the server to the client
-    virtual void send_server_cookies(void);
+    bool check_headers(void);
 
-    /// send an individual cookie
-    virtual void send_server_cookie(const std::string& cookie) = 0;
+    void check_status(void);
+
+  public:   // yes, all public... just to keep things uncluttered
+    std::string            pm_method;    /// GET, POST, etc
+    std::string            pm_uri;       /// full URI
+    std::string            pm_version;   /// HTTP/1.1 etc
+
+    scopira::tool::bufferflow  pm_body;  /// unformatted (binary) body of request
+
+    std::string            pm_content_type;   /// content type of event
+    int                    pm_content_size;   /// content size of event output
+
+    http_headers           pm_headers;        /// raw HTTP headers
+    core::http_form        pm_formdata;       /// form data (name/value pairs)
+    core::http_cookies     pm_client_cookies; /// cookies received from the client
+
+    http_server_cookies    pm_server_cookies; /// cookies set locally, and to be sent to the client
+    std::string            pm_redirect_url;   /// redirected url
+    scopira::tool::timestamp   pm_modified_time;  /// modified time of resource
+    scopira::tool::netaddr     pm_client_addr;    /// IP address of the client, initted to netflow's get_addr
+
+    scopira::tool::bufferflow  pm_buffer;
+    scopira::tool::netflow&    pm_raw_buffer;
+
+    // http response status
+    http_status            pm_status;          /// return http status code
+    bool                   pm_sent_headers;    /// have the headers been sent?
+    bool                   pm_sending_headers; /// are the headers being sent?
 };
 
 #endif

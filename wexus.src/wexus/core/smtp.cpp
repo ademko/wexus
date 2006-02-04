@@ -11,230 +11,218 @@
  */
 
 #include <wexus/core/smtp.h>
+
 #include <scopira/tool/bufferflow.h>
 #include <scopira/tool/util.h>
-
 #include <scopira/tool/fileflow.h>
+#include <scopira/tool/array.h>
+
 #include <wexus/core/output.h>
 
 //BBtargets libwexus.so
 
+//#define DEBUG_SMTP
+
+// reference: RFC0821
+
 using namespace wexus::core;
 using namespace scopira::tool;
 
-smtp_socket::smtp_socket(const std::string& server, int port)
+smtp_session::smtp_session(const scopira::tool::netaddr &server, int port)
 {
-  nethostrec rec;
-  hostname_to_hostrec(server, rec);
-
-  open(&rec.get_addr(), port);
+  m_socket.open(&server, port);
+  m_failed = m_socket.failed();
+  m_gotinitial = false;
+  m_input.reserve(4096);
 }
 
-smtp_socket::~smtp_socket()
+smtp_session::~smtp_session()
 {
-  close();
-}
+  if (m_gotinitial && !m_socket.failed()) {
+    int code;
+    std::string msg;
 
-bool smtp_socket::send(const std::string& command)
-{
-  // send the command
-  *this << command+"\r\n";
-
-#ifdef DEBUG_SMTP
-  COREOUT << "S: "+command+"\r\n";
-#endif
-
-  return !failed();
-}
-
-bool smtp_socket::receive(replies_t& r)
-{
-  static const int max_size = 1024;
-  bufferflow::byte_buffer_t buf;
-  buf.reserve(max_size);
-  buf.resize(max_size);
-  std::string reply;
-
-  // wait and make sure we have a connection
-  // wait 30 seconds
-  if (!read_ready(30*1000))
-  {
-#ifdef DEBUG_SMTP
-    COREOUT << "error: can't connect to server\n";
-#endif
-    return false;
+    // lets be nice
+    send_line("QUIT");
+    recv_line(code, msg);
   }
-
-  int size;
-  // get the servers replies
-  while (read_ready(0) && (size = read(&buf[0], buf.size())) > 0)
-  {
-    buf.resize(size);
-    reply.append(buf.begin(), buf.end());
-    buf.resize(max_size);
-  }
-
-  if (reply.empty())
-    return false;
-
-  // parse the replies
-#ifdef DEBUG_SMTP
-  bool test = parse_reply(reply, r);
-  COREOUT << "R: " << r;
-  return test;
-#else
-  return parse_reply(reply, r);
-#endif
 }
 
-bool smtp_socket::parse_reply(const std::string& message, replies_t& r) const
+bool smtp_session::send_mail(const std::string& fromemail, const std::string& to, const std::string& subject, const std::string& data)
 {
-  // clear the collection
-  r.clear();
+  addresses_t list;
+  list.push_back(to);
 
-  std::vector<std::string> responses;
-  // each reply is seperated by a CRLF
-  scopira::tool::string_tokenize_word(message, responses, "\r\n");
+  OUTPUT << "smtp_session to=" << to << '\n';
 
-  for (std::vector<std::string>::iterator it=responses.begin(); it!=responses.end(); it++)
-  {
-    // parse the reply into it's status code and response message
-    std::string left, right;
-    scopira::tool::split_char(*it, ' ', left, right);
-    if (left.empty() || right.empty())
+  return send_mail(fromemail, list, addresses_t(), subject, data);
+}
+
+bool smtp_session::send_mail(const std::string& fromemail, const addresses_t& tolist, const addresses_t &cclist,
+  const std::string& subject, const std::string& data)
+{
+  int code;
+  std::string recvmsg;
+  std::string cmd;
+
+  recvmsg.reserve(128);
+  cmd.reserve(128);
+
+  if (!m_gotinitial) {
+    m_gotinitial = true;
+    if (!recv_line(code, recvmsg))
       return false;
+  }
 
-    // insert the pair
-    r.push_back(std::make_pair(scopira::tool::string_to_int(left), right));
+  send_line("HELO " + get_hostname());
+  if (!recv_line(code, recvmsg))
+    return false;
+
+  send_line("MAIL FROM:<" + fromemail + ">");
+  recv_line(code, recvmsg);
+
+  for (int i=0; i<tolist.size(); ++i)
+  {
+    send_line("RCPT TO:<" + tolist[i] + ">");
+    recv_line(code, recvmsg);
+  }
+
+  send_line("DATA");
+  recv_line(code, recvmsg);
+
+  send_line("From: " + fromemail);
+
+  for (int i=0; i<tolist.size(); ++i)
+    send_line("To: " + tolist[i]);
+  for (int i=0; i<cclist.size(); ++i)
+    send_line("Cc: " + cclist[i]);
+
+  send_line("Subject: "+subject);
+
+  send_line("");
+
+  if (!data.empty())
+    send_data_lines(data);
+
+  send_line(".");
+  recv_line(code, recvmsg);
+
+  return !m_socket.failed();
+}
+
+bool smtp_session::recv_line(int &code, std::string &msg)
+{
+  std::string fullline;
+
+  fullline.reserve(128);
+
+#ifdef DEBUG_SMTP
+  OUTPUT << "R: ";
+#endif
+
+  while (true) {
+    if (m_input.empty()) {
+      // get more data from the socket, as our buffer is empty
+      scopira::tool::basic_array<char> buf;
+      buf.resize(m_input.capacity());
+      size_t readin;
+
+#ifdef DEBUG_SMTP
+  OUTPUT << "s";
+#endif
+      readin = m_socket.read_short(reinterpret_cast<scopira::tool::byte_t*>(buf.c_array()), buf.size());
+#ifdef DEBUG_SMTP
+  OUTPUT << readin;
+#endif
+      if (readin == 0)
+        return false;
+
+      // add it to the buffer
+      m_input.push_back(buf.begin(), buf.begin() + readin);
+    }
+
+    char c = m_input.front();
+    m_input.pop_front();
+
+    fullline.push_back(c);
+
+    if (c == '\n')
+      break;
+  }
+
+#ifdef DEBUG_SMTP
+  OUTPUT << "\" " << fullline << "\"\n";
+#endif
+
+  // ok, parse the results
+  std::string left;
+  scopira::tool::split_char(fullline, ' ', left, msg);
+
+  if (!string_to_int(left, code))
+    code = 1;
+
+  return true;
+}
+
+bool smtp_session::send_line(const std::string &linedata)
+{
+#ifdef DEBUG_SMTP
+  OUTPUT << "S: \"" << linedata;
+#endif
+
+  m_socket << linedata << "\r\n";
+
+#ifdef DEBUG_SMTP
+  OUTPUT << "\"\n";
+#endif
+
+  return !m_socket.failed();
+}
+
+bool smtp_session::send_half_line(const std::string &linedata)
+{
+#ifdef DEBUG_SMTP
+  OUTPUT << "S: " << linedata;
+#endif
+
+  m_socket << linedata << "\n";
+
+#ifdef DEBUG_SMTP
+  m_socket << '\n';
+#endif
+
+  return !m_socket.failed();
+}
+
+bool smtp_session::send_data_lines(const std::string &msgbody)
+{
+  // lazy, but in the future, do this line by line
+  std::vector<std::string> alllines;
+  std::string linebuf;
+
+  linebuf.reserve(128);
+
+  string_tokenize_word(msgbody, alllines, "\n");
+
+#ifdef DEBUG_SMTP
+  OUTPUT << "PREPARING MSG OF PARTS#" << alllines.size() << '\n';
+#endif
+
+  for (int i=0; i<alllines.size(); ++i) {
+    linebuf = alllines[i];
+
+    if (linebuf.empty())
+      { }  // nothing
+    else {
+      if (linebuf[0] == '.')    // 4.5.2 of the RFC
+        linebuf.insert(0, ".");
+      if (linebuf[linebuf.size() - 1] == '\r')
+        linebuf.resize(linebuf.size() - 1);
+    }
+
+    send_line(linebuf);
   }
 
   return true;
 }
 
-
-smtp::smtp(const std::string& server, int port)
-{
-  nethostrec rec;
-  hostname_to_hostrec(server, rec);
-
-  m_server.open(&rec.get_addr(), port);
-}
-
-smtp::~smtp(void)
-{
-  m_server.close();
-}
-
-bool smtp::send_mail(const std::string& from, const std::string& to, const std::string& subject, const std::string& data)
-{
-  mail_list_t list;
-  list.to.push_back(to);
-
-  return send_mail(from, list, subject, data);
-}
-
-bool smtp::send_mail(const std::string& from, const mail_list_t& list, const std::string& subject, const std::string& data, const std::string& from_field)
-{
-  smtp_socket::replies_t r;
-
-  // receive initial connection message
-  if (!m_server.receive(r))
-    return false;
-
-  std::string cmd;
-
-  // identify self 
-  cmd = "HELO "+get_hostname();
-  m_server.send(cmd);
-  // receive welcome response
-  m_server.receive(r);
-
-  // tell server who the message is from
-  cmd = "MAIL FROM:<"+from+">";
-  m_server.send(cmd);
-  m_server.receive(r);
-
-  // send the list of addresses that the message is for
-  for (list_t::const_iterator it=list.to.begin(); it!=list.to.end(); it++)
-  {
-    cmd = "RCPT TO:<"+*it+">";
-    m_server.send(cmd);
-    m_server.receive(r);
-  }
-
-  cmd = "DATA";
-  // send the data command
-  m_server.send(cmd);
-  m_server.receive(r);
-
-  // send headers
-  if (from_field.empty())
-    m_server.send("From: "+from);
-  else
-    m_server.send("From: "+from_field+" <"+from+">");
-
-  send_list(list.to, "To");
-  send_list(list.cc, "Cc");
-
-  m_server.send("Subject: "+subject);
-
-  // send the data
-  if (!data.empty())
-  {
-    // if a . is found at the start then insert an additional . at the beginning.
-    // (see sec. 4.5.2. of RFC0821)
-    if (data[0] == '.')
-      m_server.send('.'+data);
-    else
-      m_server.send(data);
-  }
-  // end data transfer with a . on a line by itself
-  m_server.send(".");
-  m_server.receive(r);
-
-  // send quit command
-  cmd = "QUIT";
-  m_server.send(cmd);
-
-  // receive close message
-  m_server.receive(r);
-
-  return !m_server.failed();
-}
-
-void smtp::send_list(const list_t& list, const std::string& field)
-{
-  for (list_t::const_iterator it=list.begin(); it!=list.end(); it++)
-    m_server.send(field+": "+*it);
-}
-
-#ifdef DEBUG_SMTP
-oflow_i& operator<<(oflow_i& o, const smtp_socket::replies_t& r)
-{
-  for (smtp_socket::replies_t::const_iterator it=r.begin(); it!=r.end(); it++)
-    COREOUT << int_to_string((*it).first) << " " << (*it).second << "\n";
-
-  return o;
-}
-#endif
-
-#ifdef CORE_DEBUG_SMTP
-
-int main(int argc, char** argv)
-{
-  output = new fileflow(fileflow::stdout_c, 0);
-
-  netflow::init();
-
-  smtp mail("mailserver");
-  smtp::mail_list_t list;
-  list.to.push_back("blah@anon.com");
-  list.cc.push_back("anon@anon.com");
-  mail.send_mail("bob@dude.poo", list, "test", "Test Message", "Test");
-
-  netflow::cleanup();
-
-  return 0; //return ok
-}
-
-#endif

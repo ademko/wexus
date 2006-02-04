@@ -1,3 +1,4 @@
+
 /*
  *  Copyright (c) 2004    Aleksander B. Demko
  *
@@ -10,21 +11,27 @@
  *
  */
 
-#ifndef __INCLUDED__WEXUS_TOOL_HTTP_H__
-#define __INCLUDED__WEXUS_TOOL_HTTP_H__
+#ifndef __INCLUDED__WEXUS_CORE_HTTP_H__
+#define __INCLUDED__WEXUS_CORE_HTTP_H__
 
 #include <string>
 #include <map>
 #include <vector>
+#include <list>
 
 #include <scopira/tool/time.h>
+#include <scopira/tool/flow.h>
 
 namespace wexus
 {
   namespace core
   {
-    class cookies;
-    class form_data;
+    class http_status;
+
+    class http_headers;
+    class http_cookies;
+    class http_server_cookies;
+    class http_form;
 
     /**
      * performs url decoding (on any string)
@@ -65,14 +72,60 @@ namespace wexus
     scopira::tool::timestamp httptime_to_timestamp(const std::string &http_format_time);
     /// converts a time stamp to http format
     std::string timestamp_to_httptime(scopira::tool::timestamp t);
+
+    /// debug routine
+    void print_binary(const void *data, size_t datalen);
   }
 }
 
-class wexus::core::cookies
+/**
+ * A class to handle HTTP status codes
+ *
+ * @author Aleksander Demko
+ */
+class wexus::core::http_status
+{
+  public:
+    http_status(void) : m_status_set(false), m_code(0) {}
+
+    void set_code(int code);
+    int  get_code(void) const { return m_code; }
+    const std::string& get_message(void) const { return m_message; }
+
+  private:
+    bool m_status_set;
+    int m_code;
+    std::string m_message;
+};
+
+/**
+ * A collection of http headers, from the cilent.
+ * 
+ * @author Aleksander Demko
+ */
+class wexus::core::http_headers
+{
+  public:
+    typedef std::map<std::string, std::string> headers_t;
+
+    headers_t pm_headers;
+
+    /// parses header information in http request
+    bool parse_headers(std::vector<std::string>::const_iterator first, std::vector<std::string>::const_iterator last);
+    /// parses header information for the provided header
+    bool parse_header(const std::string& header, const std::string& data);
+};
+
+/**
+ * A mapping of cookie name and values
+ *
+ * @author Aleksander Demko
+ */ 
+class wexus::core::http_cookies
 {
   public:
     /// ctors
-    cookies(void);
+    http_cookies(void);
 
     /// checks for a cookie of the given name
     bool has_cookie(const std::string& name) const;
@@ -95,11 +148,46 @@ class wexus::core::cookies
     cookies_t m_cookies;
 };
 
-class wexus::core::form_data
+/**
+ * A collection of cookies that will be sent from the server
+ * to the client.
+ *
+ * @author Aleksander Demko
+ */
+class wexus::core::http_server_cookies
+{
+  public:
+    // a public class for now
+
+    /// one cookie
+    struct cookie_t
+    {
+      std::string name;
+      std::string value;
+      std::string expires;
+      std::string domain;
+      std::string path;
+    };
+
+    /// the cookies
+    typedef std::list<cookie_t> cookies_t;
+
+    /// finally, the instance variable
+    cookies_t pm_cookies;
+
+    void send_server_cookies(scopira::tool::oflow_i &client) const;
+};
+
+/**
+ * The mapping of form fields.
+ *
+ * @author Aleksander Demko
+ */ 
+class wexus::core::http_form
 {
   public:
     /// ctors
-    form_data(void);
+    http_form(void);
 
     /// checks if the form field exists
     bool has_field(const std::string& name) const;
@@ -118,8 +206,8 @@ class wexus::core::form_data
 
   private:
     /// map of form name/value pairs
-    typedef std::map<std::string, std::string> form_data_t;
-    form_data_t m_form_data;
+    typedef std::map<std::string, std::string> form_t;
+    form_t m_form_data;
 };
 
 #endif

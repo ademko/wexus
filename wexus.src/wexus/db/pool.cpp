@@ -15,6 +15,7 @@
 
 #include <scopira/tool/prop.h>
 #include <scopira/tool/util.h>
+#include <scopira/tool/output.h>
 
 #include <wexus/db/connection.h>
 
@@ -50,10 +51,8 @@ bool db::connection_pool::init_pool(int conncount, const std::string &dsn, const
   locker_ptr<shared_t> p(m_connpool);
   connstack_t::iterator ii, endii;
 
-  assert(conncount>0);
-  assert(&dsn);
-  assert(&username);
-  assert(&pw);
+  if (conncount<= 0)
+    return false;
 
   assert(p.get());
 
@@ -66,11 +65,13 @@ bool db::connection_pool::init_pool(int conncount, const std::string &dsn, const
     assert(&(*ii));
     if (!(*ii)->connect(dsn, username, pw)) {
       // it was a good try...
-      assert(false && "[Failed to open ODBC connect]");
+      //assert(false && "[Failed to open ODBC connect]");
       p->connstack.resize(0);
       return false;
     }
   }
+
+  OUTPUT << "connection_pool started numcom=" << conncount << '\n';
 
   return true;
 }

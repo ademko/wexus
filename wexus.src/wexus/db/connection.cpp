@@ -48,7 +48,6 @@ db::connection::connection(env &e)
 {
   SQLRETURN Ret;
 
-  OUTPUT << "[ODBC1";
   Ret = SQLAllocHandle(SQL_HANDLE_DBC, e.m_handle, &m_handle); 
   assert(Ret == SQL_SUCCESS || Ret == SQL_SUCCESS_WITH_INFO);
   Ret = SQLSetConnectAttr(m_handle, SQL_LOGIN_TIMEOUT, (SQLPOINTER)(5), 0);
@@ -66,21 +65,22 @@ db::connection::~connection()
 bool db::connection::connect(const std::string &DSN, const std::string &userid, const std::string &pw)
 {
   SQLRETURN Ret;
+  bool r;
 
   assert(m_handle);
 
-  assert(&DSN);
-  assert(&userid);
-  assert(&pw);
-  assert(DSN.size()>0);
-  assert(userid.size()>0);
+  if (DSN.empty() || userid.empty())
+    return false;
 
-  OUTPUT << "2";
   // these casts are blasphemous
   Ret = SQLConnect(m_handle, (SQLCHAR*)DSN.c_str(), SQL_NTS, (SQLCHAR*)userid.c_str(), SQL_NTS, (SQLCHAR*)pw.c_str(), SQL_NTS);
-  OUTPUT << "3]";
 
-  return Ret == SQL_SUCCESS || Ret == SQL_SUCCESS_WITH_INFO;
+  r = Ret == SQL_SUCCESS || Ret == SQL_SUCCESS_WITH_INFO;
+
+  if (!r)
+    OUTPUT << "SQLConnect() error=" << error(*this);
+
+  return r;
 }
 
 bool db::connection::set_autocommit(bool autoc)

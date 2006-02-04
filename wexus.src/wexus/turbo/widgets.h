@@ -96,7 +96,7 @@ class wexus::turbo::param
 /**
  * This represents a destination handler.
  *
- * if methodname is "", "index"i will be assumed.
+ * if methodname is "", "index" will be assumed.
  * encodedoptions are optional params (built via params)
  *
  * @author Aleksander Demko
@@ -120,6 +120,11 @@ class wexus::turbo::target
 /**
  * This is a html form.
  *
+ * Future idea: rather than have a form variable, simplypush it's state logic to the
+ * EVENT object or some such. Well, we'd still have an object, but all the methods
+ * then could be static. Or just keep this, and actually convert some of the methods
+ * into inclodes blocks in like table_statement.
+ *
  * @author Aleksander Demko
  */ 
 class wexus::turbo::form
@@ -128,7 +133,7 @@ class wexus::turbo::form
     enum {
       post_type_c,
       get_type_c,
-      //upload_type_c,    // not yet implemented
+      upload_type_c,
     };
     enum {
       wrap_none_c = 0, // wrap won't be included if this value is specified
@@ -202,7 +207,8 @@ class wexus::turbo::form
      * A file upload widget
      * @author Aleksander Demko
      */ 
-    std::string file_upload(const std::string &fieldname) const;
+    std::string file_upload(const std::string &fieldname, const std::string &defaultfilename = "",
+      int filenamelength = 32, int numfiles = 1) const;
 
     /**
      * The submit button for the form.
@@ -223,12 +229,16 @@ class wexus::turbo::form
     {
       public:
         /// ctor
-        drop_down(form &f, const std::string &fieldname, int viewsize = 1);
+        drop_down(form &f, const std::string &fieldname);
+        /// ctor
+        drop_down(form &f, const std::string &fieldname, const std::string &defaultval, int viewsize = 1);
         /// dtor
         ~drop_down();
 
         /// call this once for every option in the field
-        void option(const std::string &val, const std::string &desc) const;
+        const drop_down & option(const std::string &val, const std::string &desc) const;
+      private:
+        std::string selval;
     };
 
   protected:

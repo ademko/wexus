@@ -192,7 +192,7 @@ class wexus::turbo::turbo_event : public wexus::core::app_event
     /// sets the form field value in the cache
     void set_form_field_default(const std::string &fieldname, const std::string &val);
 
-    /// nice helper
+    /// nice helper (same as get_form_field())
     const std::string & operator [](const std::string &fieldname) const { return get_form_field(fieldname); }
     /// nice helper... need to fix this up first
     /// no, i dont think a non-const version of this will ever be safe

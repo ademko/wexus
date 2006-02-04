@@ -23,6 +23,12 @@
 using namespace wexus::turbo;
 using namespace wexus::db;
 
+//
+//
+// turbo_statement
+//
+//
+
 turbo_statement::turbo_statement(void)
   : statement(EVENT.db()), m_fresh(true)
 {
@@ -147,6 +153,12 @@ void turbo_statement::internal_reset(void)
   m_fresh = true;
 }
 
+//
+//
+// turbo_xtion
+//
+//
+
 turbo_xtion::turbo_xtion(bool defaultcommit)
   : db(EVENT.db())
 {
@@ -167,5 +179,61 @@ turbo_xtion::~turbo_xtion()
     db.rollback();
 
   db.set_autocommit(true);
+}
+
+//
+//
+// table_statement
+//
+//
+
+table_statement::table_statement(turbo_statement &_S)
+  : S(_S)
+{
+  EVENT.output() << "<table border=\"1\">\n";
+}
+
+table_statement::~table_statement()
+{
+  EVENT.output() << "</table>\n";
+}
+
+const table_statement & table_statement::render(void) const
+{
+  header(*this);
+  while (S.fetch_next())
+    row(*this);
+
+  return *this;
+}
+
+table_statement::header::header(const table_statement &ts)
+{
+  EVENT.output() << "<tr>";
+
+  const statement::fieldnames_t &names = ts.S.get_fieldnames();
+
+  for (int x=0; x<names.size(); ++x)
+    EVENT.output() << "<th>" << names[x] << "</th>\n";
+}
+
+table_statement::header::~header()
+{
+  EVENT.output() << "</tr>";
+}
+
+table_statement::row::row(const table_statement &ts)
+{
+  EVENT.output() << "<tr>";
+
+  const statement::fieldnames_t &names = ts.S.get_fieldnames();
+
+  for (int x=0; x<names.size(); ++x)
+    EVENT.output() << "<td>" << ts.S[names[x]] << "</td>\n";
+}
+
+table_statement::row::~row()
+{
+  EVENT.output() << "</tr>";
 }
 

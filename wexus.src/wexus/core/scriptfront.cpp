@@ -47,7 +47,8 @@ bool core::scriptfront::init_prop(front_peer_i *peer, scopira::tool::property *p
 
 void core::scriptfront::run(void)
 {
-  script_front_event ev;
+  assert(false);    // reimplement this!
+  /*script_front_event ev;
 
   front_peer_i* peer = get_peer();
 
@@ -60,11 +61,11 @@ void core::scriptfront::run(void)
   peer->handle_front_event(ev);
   ev.set_request("url-two");
   peer->handle_front_event(ev);
-  COREOUT << "Script-killing\n";
+  COREOUT << "Script-killing\n";*/
 }
 
-scopira::tool::oflow_i& core::scriptfront::script_front_event::get_output(void)
+/*scopira::tool::oflow_i& core::scriptfront::script_front_event::get_output(void)
 {
   return COREOUT;
 }
-
+*/

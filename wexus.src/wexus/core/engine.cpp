@@ -71,7 +71,7 @@ void core::engine::handle_front_event(front_event_i& evt)
   // then a list-iteration would be better than a map look up.
   // if we have many, then well need a map
 
-  COREOUT << " engine \"" << evt.get_request() << "\"\n";
+  OUTPUT << " engine \"" << evt.get_request() << '\"';
 
   // check for empty
   if (evt.get_request().empty()) {
@@ -93,7 +93,7 @@ void core::engine::handle_front_event(front_event_i& evt)
   if (evt.get_request() == "/quit/") {
     // remove this in real code FIXME (to be replaced by a reactor)
     // or filter to only allow from localhost?
-    COREOUT << "Quit triggered.\n";
+    OUTPUT << "Quit triggered.\n";
     handle_shutdown();
     return;
   }
@@ -154,10 +154,10 @@ bool core::engine::load_prop_file(iflow_i &in, property *out)
   if (!inp.read_property(out))
     return false;
 
-  //COREOUT << "READ_PROPERTY_TREE:\n" << out << '\n';
+  //OUTPUT << "READ_PROPERTY_TREE:\n" << out << '\n';
   s = out->get_string_value("wexus_file_version");
   if (!s || !string_to_int(*s, x) || x>1) {
-    COREOUT << "wexus_file_version of 1 or less required\n";
+    OUTPUT << "wexus_file_version of 1 or less required\n";
     return false;
   }
 
@@ -186,6 +186,7 @@ void core::engine::add_app(const std::string &mntpoint, app *a)
 {
   m_apps.push_back(appentry_t(mntpoint + "/", a));
   //m_apps[mntpoint] = a;
+  OUTPUT << "engine started app=" << mntpoint << '\n';
 }
 
 void core::engine::start(void)
@@ -275,7 +276,7 @@ void core::engine::load_lib(const std::string &s)
 {
   dll *d;
 
-  COREOUT << "Loading DLL: " << s << '\n';
+  OUTPUT << "Loading DLL: " << s << '\n';
   m_dlls.push_back( d = new dll);
   d->load_dll(s);
 }
@@ -290,24 +291,24 @@ void core::engine::load_front(property *rp)
   if (!s)
     return;
 
-  COREOUT << "Loading front: " << *s;
+  OUTPUT << "Loading front: " << *s;
 
   o.set( load_object(*s) );
   if (!o.get()) {
-    COREOUT << " failed to find type\n";
+    OUTPUT << " failed to find type\n";
     return; // null loaded object... whatever
   }
   fr = dynamic_cast<core::front_i*>(o.get());
   if (!fr) {
-    COREOUT << " type is NOT a front\n";
+    OUTPUT << " type is NOT a front\n";
     return;
   }
   if (!fr->init_prop(this, rp)) {
-    COREOUT << " failed property loading\n";
+    OUTPUT << " failed property loading\n";
     return;
   } else
     add_front(fr);
-  COREOUT << '\n';
+  OUTPUT << '\n';
 }
 
 void core::engine::load_app(property *rp)
@@ -322,27 +323,27 @@ void core::engine::load_app(property *rp)
   if (!s || !fmnt)
     return;
 
-  COREOUT << "Loading app: " << *s;
+  OUTPUT << "Loading app: " << *s;
 
   o.set( load_object(*s) );
   if (!o.get()) {
-    COREOUT << " failed to find type\n";
+    OUTPUT << " failed to find type\n";
     return; // null loaded object... whatever
   }
   a = dynamic_cast<core::app*>(o.get());
   if (!a) {
-    COREOUT << " type is NOT an app\n";
+    OUTPUT << " type is NOT an app\n";
     return;
   }
   if (!a->init_prop(*fmnt, rp)) {
-    COREOUT << " failed property loading\n";
+    OUTPUT << " failed property loading\n";
     return;
   } else
     for (jj=rp->get("baseurl"); jj.valid(); ++jj) {
-      COREOUT << " @" << (*jj)->get_value_as_string();
+      OUTPUT << " @" << (*jj)->get_value_as_string();
       add_app((*jj)->get_value_as_string(), a);
     }
 
-  COREOUT << '\n';
+  OUTPUT << '\n';
 }
 

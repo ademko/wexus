@@ -22,6 +22,8 @@ namespace wexus
   {
     class turbo_statement;
     class turbo_xtion;
+
+    class table_statement;
   }
 }
 
@@ -34,6 +36,9 @@ namespace wexus
  * Then execute/fetch as normal.
  *
  * Use the reset() thing if you wan to reuse this statemenet after.
+ *
+ * Todo? Add a feasture to save/cache all values so the query can be
+ * reiterated over.
  *
  * @author Aleksander Demko
  */ 
@@ -104,6 +109,49 @@ class wexus::turbo::turbo_xtion
     bool m_userset, m_commit;
 
     wexus::db::connection &db;
+};
+
+/**
+ * A render-object for statements.
+ * Useful for debugging.
+ *
+ * Think of a way to do auto resorting, pagnation, etc?
+ *
+ * @author Aleksander Demko
+ */ 
+class wexus::turbo::table_statement
+{
+  public:
+    /// ctor
+    table_statement(turbo_statement &_S);
+    /// dtor
+    ~table_statement();
+
+    /// a header row of titles
+    class header
+    {
+      public:
+        /// ctor
+        header(const table_statement &ts);
+        /// dtor
+        ~header();
+    };
+
+    /// renders the current row
+    class row
+    {
+      public:
+        /// ctor
+        row(const table_statement &ts);
+        /// dtor
+        ~row();
+    };
+
+    /// render all (basically, header, and fetch_next for the rows)
+    const table_statement & render(void) const;
+
+  private:
+    turbo_statement &S;
 };
 
 #endif

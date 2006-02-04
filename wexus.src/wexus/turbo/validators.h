@@ -150,6 +150,14 @@ class wexus::turbo::check_form
      * @author Aleksander Demko
      */ 
     bool is_username(const std::string &fieldname);
+    /**
+     * This checks to make sure:
+     *  password
+     *
+     * On failure, false is returned an an error is added to your event stack.
+     * @author Aleksander Demko
+     */ 
+    bool is_password(const std::string &fieldname);
 
     /**
      * Check if the given field is null
@@ -205,6 +213,14 @@ class wexus::turbo::check_form
      * @author Aleksander Demko
      */ 
     bool check_username(const std::string &fieldname);
+    /**
+     * This checks to make sure:
+     *  password
+     *
+     * On failure, false is returned an an error is added to your event stack.
+     * @author Aleksander Demko
+     */ 
+    bool check_password(const std::string &fieldname);
 
     /**
      * A general checker.

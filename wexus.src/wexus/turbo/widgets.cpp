@@ -94,17 +94,17 @@ form::form(const std::string &formname, const std::string &enctargeturl,
 {
   EVENT.output() << "<FORM ";
 
+  // file uploading... see RFC1867
+
   switch (type) {
-    case post_type_c: EVENT.output() << " METHOD=\"post\""; break;
-    case get_type_c: EVENT.output() << " METHOD=\"get\""; break;
-    //case file_type_c: EVENT.output() << " METHOD=\"post\""; break;
+    case post_type_c: EVENT.output() << " METHOD=\"POST\""; break;
+    case get_type_c: EVENT.output() << " METHOD=\"GET\""; break;
+    case upload_type_c: EVENT.output() << " METHOD=\"POST\" ENCTYPE=\"multipart/form-data\""; break;
   }
 
   EVENT.output() << " ACTION=\"" << enctargeturl << "\">\n";
 
   //EVENT.output() << "<INPUT TYPE=\"HIDDEN\" NAME=\"formname\" VALUE=\"" << formname << "\" />\n";
-
-  // TODO for !get_type_c, encode the encodedoptions as HIDDEN inputs, maybe
 }
 
 form::~form()
@@ -153,7 +153,8 @@ std::string form::text_field(const std::string &fieldname, const std::string &de
   return ret;
 }
 
-std::string form::file_upload(const std::string &fieldname) const
+std::string form::file_upload(const std::string &fieldname, const std::string &defaultfilename,
+  int filenamelength, int numfiles) const
 {
   std::string ret, def = my_get_form_field(fieldname);
 
@@ -161,6 +162,14 @@ std::string form::file_upload(const std::string &fieldname) const
 
   ret = "<INPUT TYPE=\"FILE\" NAME=\"";
   ret += my_field(fieldname);
+  if (!defaultfilename.empty()) {
+    ret += "\" ";
+    ret += html(defaultfilename);
+  }
+  ret += "\" SIZE=\"";
+  ret += int_to_string(filenamelength);
+  ret += ",";
+  ret += int_to_string(numfiles);
   ret += "\" />\n";
 
   return ret;
@@ -275,8 +284,18 @@ std::string form::submit_button(const std::string &desc, const std::string &fiel
   return ret;
 }
 
-form::drop_down::drop_down(form &f, const std::string &fieldname, int viewsize)
+form::drop_down::drop_down(form &f, const std::string &fieldname)
 {
+  selval = f.my_get_form_field(fieldname);
+  EVENT.output() << "<SELECT NAME=\"" << f.my_field(fieldname) <<
+    "\" SIZE=\"1\">\n";
+}
+
+form::drop_down::drop_down(form &f, const std::string &fieldname, const std::string &defaultval, int viewsize)
+{
+  selval = f.my_get_form_field(fieldname);
+  if (selval.empty())
+    selval = defaultval;
   EVENT.output() << "<SELECT NAME=\"" << f.my_field(fieldname) <<
     "\" SIZE=\"" << viewsize << "\">\n";
 }
@@ -286,13 +305,18 @@ form::drop_down::~drop_down()
   EVENT.output() << "</SELECT>\n";
 }
 
-void form::drop_down::option(const std::string &val, const std::string &desc) const
+const form::drop_down & form::drop_down::option(const std::string &val, const std::string &desc) const
 {
   EVENT.output() << "<OPTION VALUE=\"";
   EVENT.html_output() << val;
-  EVENT.output() << "\">";
+  if (val == selval)
+    EVENT.output() << "\" SELECTED>";
+  else
+    EVENT.output() << "\">";
   EVENT.html_output() << desc;
   EVENT.output() << "</OPTION>\n";
+
+  return *this;
 }
 
 std::string form::my_field(const std::string &fieldname) const
@@ -357,7 +381,7 @@ std::string wexus::turbo::button_to(const std::string &desc, const std::string &
   ret += enctargeturl;
   ret += "\"><INPUT TYPE=\"SUBMIT\" VALUE=\"";
   ret += html(desc);
-  ret += "\"></FORM>";
+  ret += "\" /></FORM>";
 
   return ret;
 }

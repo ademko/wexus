@@ -34,10 +34,14 @@ namespace wexus
 }
 
 /**
- * a scriptable front end use to debug/test a site. 
- * initially, this will simply execute a list of urls
- * with values, but in the future this might include
- * a full scripting language (guile/scheme plugged in perhaps)
+ * TODO This class used to exist, but didn't keep up with API changes.
+ * When needed, this class will be made to:
+ *   - process a file/callable from programmers test main line
+ *   - it will make virtual requests to the engine
+ *   - support cookies (ie. for session)
+ *   - perhaps verify output, or atleast status return codes
+ *
+ * Again, this will be reinspected as the need arises.
  *
  * @author Aleksander Demko
  */
@@ -63,20 +67,9 @@ class wexus::core::scriptfront : private scopira::tool::thread,
     // front_i
 
   protected:
-    class script_front_event : public wexus::core::front_event_imp
+    class script_front_event : public wexus::core::front_event_i
     {
       public:
-        virtual ~script_front_event() {}
-
-        virtual void set_request(const std::string& request) { i_set_request(request); }
-
-        virtual scopira::tool::oflow_i& get_output(void);
-
-        virtual const std::string& get_form_field(const std::string& name) const { return name; }
-        virtual bool has_form_field(const std::string& name) const { return false; }
-
-        virtual void get_client_cookies(const std::string& name, std::vector<std::string>&) const {}
-        virtual bool has_client_cookie(const std::string& name) const { return false; }
     };
 
   private:
