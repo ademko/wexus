@@ -51,7 +51,7 @@ class wexus::core::http_front : public scopira::tool::thread,
     /// default ctor
     http_front(void);
     /// initing ctor
-    http_front(wexus::core::front_peer_i* peer, int thread_count, int port=80);
+    http_front(wexus::core::front_peer_i* peer, int thread_count, int port=80, size_t maxpost=0);
 
     /// load params from a prop tree
     virtual bool init_prop(wexus::core::front_peer_i *peer, scopira::tool::property *prop);
@@ -78,6 +78,8 @@ class wexus::core::http_front : public scopira::tool::thread,
     scopira::tool::event_area<client_area> m_clientarea;
     /// http server port
     int m_port;
+    /// max post size, in bytes
+    size_t m_maxpost;
     /// the actual threads
     workers_t m_workers;
     /// a looper

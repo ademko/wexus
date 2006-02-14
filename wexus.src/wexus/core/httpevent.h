@@ -98,6 +98,8 @@ class wexus::core::http_event : public wexus::core::front_event_i
     scopira::tool::bufferflow  pm_buffer;
     scopira::tool::netflow&    pm_raw_buffer;
 
+    std::string            pm_boundry;       /// if not null, this is the border string in a multipart/form-data upload
+
     // http response status
     http_status            pm_status;          /// return http status code
     bool                   pm_sent_headers;    /// have the headers been sent?

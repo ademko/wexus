@@ -43,13 +43,13 @@ using namespace wexus::core;
 //
 
 http_front::http_front(void)
-  : front_i(0), thread(0), m_port(-1)
+  : front_i(0), thread(0), m_port(-1), m_maxpost(0)
 {
   m_clientarea.pm_data.alive = true;
 }
 
-http_front::http_front(front_peer_i* peer, int thread_count, int port)
-  : front_i(peer), thread(0), m_port(port)
+http_front::http_front(front_peer_i* peer, int thread_count, int port, size_t maxpost)
+  : front_i(peer), thread(0), m_port(port), m_maxpost(maxpost)
 {
   m_clientarea.pm_data.alive = true;
 
@@ -222,6 +222,7 @@ int http_worker::process_event(scopira::tool::netflow &clientflow)
   // can't be string since it would have a null character at the end
   flow_i::byte_t  dbl_crlf[] = {'\r','\n','\r','\n'};
   size_t dbl_crlf_size = sizeof(dbl_crlf)/sizeof(dbl_crlf[0]);
+  size_t maxpostsize = m_master->m_maxpost;
 
   const int max_buf_size = 1024*4;
    // check size in case we're testing with a really small buffer
@@ -304,11 +305,25 @@ int http_worker::process_event(scopira::tool::netflow &clientflow)
           && evt.pm_client_addr.parse_string(ii->second))
           OUTPUT << " " << ii->second; // parse the actual IP and store it in the event's m_client_addr
 
-      /*ii = evt.pm_headers.pm_headers.find("content-type");
+      ii = evt.pm_headers.pm_headers.find("content-type");
       if (ii != evt.pm_headers.pm_headers.end()) {
         // we have a content-type?
-        OUTPUT << "CT:" << ii->second << '\n';
-      }*/
+        //OUTPUT << "CT:" << ii->second << '\n';
+        std::vector<std::string> values;
+        // split string into name/value sets using the "; " seperators
+        string_tokenize_word(ii->second, values, "; ");
+
+        if (!values.empty() && values[0] == "multipart/form-data") {
+          std::string left, right;
+          for (int x=1; x<values.size(); ++x) {
+            if (!split_char(values[x], '=', left, right))
+              continue;
+
+            if (left == "boundary")
+              url_decode(right, evt.pm_boundry); // ok, we have a boundary
+          }
+        }
+      }//if found headers.end()
 
       // headers have been read
       read_headers = true;
@@ -356,6 +371,11 @@ int http_worker::process_event(scopira::tool::netflow &clientflow)
       // write body data if any exists
       if (body_write_size != 0)
         evt.pm_body.write(body_buf_pos, body_write_size);
+
+      if (maxpostsize>0 && evt.pm_body.size()>maxpostsize) {
+        evt.pm_status.set_code(500); // too large of a post
+        break;
+      }
 
       // check if we've read all the body data
       if (evt.pm_body.size() == content_length)
@@ -405,11 +425,13 @@ void http_worker::parse_request(http_event& evt)
     // do nothing, this is ok (post but with no content)
   } else if (ispost) {
     // retrieve buffer data and put it into a string
-    flow_i::byte_t* buffer = evt.pm_body.c_array();
-    std::string enc_data(reinterpret_cast<char*>(buffer), evt.pm_body.size());
+    const char *encoded_begin = reinterpret_cast<const char *>(evt.pm_body.c_array());
+    const char *encoded_end = encoded_begin + evt.pm_body.size();
     
     // decode form values
-    if (!evt.pm_formdata.decode_and_parse(enc_data)) {
+    if (evt.pm_boundry.empty() ?
+        !evt.pm_formdata.decode_and_parse(encoded_begin, encoded_end)
+        : !evt.pm_formdata.decode_and_parse_upload(encoded_begin, encoded_end, evt.pm_boundry) ) {
       evt.pm_status.set_code(400);
       return;
     }
@@ -458,7 +480,7 @@ bool http_worker::decode_request_line(const std::string& request_line, http_even
 
       // decode form data (right side of ?)
       if (pos != (rawuri.size()-1) &&
-          !evt.pm_formdata.decode_and_parse(rawuri.substr(0+pos+1, std::string::npos)))
+          !evt.pm_formdata.decode_and_parse(rawuri.c_str() + pos + 1, rawuri.c_str() + rawuri.size()))
         return false;
     } else
       core::url_decode(rawuri, evt.pm_uri);

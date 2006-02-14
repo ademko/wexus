@@ -86,16 +86,22 @@ namespace wexus
 class wexus::core::http_status
 {
   public:
-    http_status(void) : m_status_set(false), m_code(0) {}
+    /// ctor
+    http_status(void);
 
+    /**
+     * Sets the error code from the numeric value (and uses an
+     * internal lookup table to compute a message.
+     *
+     * @author Aleksander Demko
+     */ 
     void set_code(int code);
     int  get_code(void) const { return m_code; }
-    const std::string& get_message(void) const { return m_message; }
+    const char * get_message(void) const { return m_message; }
 
   private:
-    bool m_status_set;
     int m_code;
-    std::string m_message;
+    const char * m_message;
 };
 
 /**
@@ -196,13 +202,22 @@ class wexus::core::http_form
     const std::string& get_field(const std::string& name) const;
 
     /**
-     * decodes a url with form data
+     * Decode the given url of data (either via get or post) into formdata.
      *
      * @param encoded encoded url
      * @return were the values successfully decoded into form name/value pairs
-     * @author Andrew Kaspick
+     * @author Aleksander Demko
      */
-    bool decode_and_parse(const std::string& encoded);
+    bool decode_and_parse(const char *encoded_begin, const char *encoded_end);
+
+    /**
+     * Decode the given url of data (either via get or post) into multipart data
+     *
+     * @param encoded encoded url
+     * @return were the values successfully decoded into form name/value pairs
+     * @author Aleksander Demko
+     */
+    bool decode_and_parse_upload(const char *encoded_begin, const char *encoded_end, const std::string &boundrystring);
 
   private:
     /// map of form name/value pairs
