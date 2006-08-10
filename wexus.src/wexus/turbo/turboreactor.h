@@ -22,6 +22,11 @@
 
 namespace wexus
 {
+  /**
+   * Turbo contains the Model/View .wx-file based layer for Wexus
+   *
+   * @author Aleksander Demko
+   */ 
   namespace turbo
   {
     class string_iterator;
