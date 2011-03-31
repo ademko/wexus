@@ -3,11 +3,21 @@
   \page wexuscorepage Wexus Core Reference
   
    - \subpage wexusinstallingpage
-   - \subpage wexushelloworldpage
    - \subpage wexusoverviewpage
    - \subpage wexusturbopage
    - \subpage wexuswxmakepage
+   - \subpage wexusdeveloperspage
 
+*/
+
+/**
+  \page wexusdeveloperspage Developer's Guide
+
+   - \subpage wexushelloworldpage
+   - \subpage wexusbasicwxpage TODO
+   - \subpage wexuscontrollerspage
+   - \subpage wexussessionspage
+   - \subpage wexuswxmarkup TODO
 */
 
 /**
@@ -157,6 +167,93 @@
 
  You can then access http://localhost:8080/hello/main_co.index.wx
 
+*/
+
+/**
+  \page wexuscontrollerspage Control Flow and Controller Objects
+
+  In Wexus (specifically, Wexus/Turbo), you organize your application
+  with controller objects. These inherit from wexus::turbo::turbo_controller.
+  You should use the wxmake tool to quickly create shell implementations for
+  new controllers.
+
+  A controller class groups one or more "web methods".
+  A web method is simply a public methods of your controller,
+  that has been "registered" with Wexus to be accesible via the web server.
+  Most controllers have atleast an index() web method. The shell controllers
+  built by wxmake include this method.
+
+  Typically, the logic portion of your application is stored in these
+  web methods. This method (and any others that you call) have access
+  to the "event" instance. This object contains such things as
+  the users form field input, your output stream (back to the user),
+  the DB connection instance, etc. It is your gateway back to the user.
+  
+  At the end of your web method, you typically call
+  a seperate method which is dedicated to rendering the outpage page.
+  This 2nd method (which can be considered your "view" layer)
+  is typically private to your class and needs not be
+  registered in any way. Although you can implement this method as a collection
+  of HTML output commands, you should instead implement them as .wx files.
+
+  A .wx file is a mixture of HTML and embded C++ code. wxmake is used
+  first to create the initial template/shell of the file, and subsequntly
+  to compile it. Compiling involves converting the .wx file to a .cpp
+  file filed with the C++ code and C++ code representing the HTML output.
+
+  Your logic method and rendering method are both methods of the same
+  controllers class instance and communicate with each other by simply sharing
+  information via member variables.
+
+  The full control flow of a Wexus handled web page request is as followed:
+
+  - Wexus parses and process the request into an "event" object
+  - Wexus instanciates your controller object, thereby calling its
+    constructor. You put any common initialization and setup
+    code in your constructor that is common to all your web methods.
+  - Wexus then calls the registered web method that was hit
+  - Within this web method, you validate and process (such as, update
+    a database) the user's forum input.
+  - You then populate some local member variables, then call
+    a rendering method that will utilize those same variables
+  - The rendering method is often implemented as a .wx file
+  - Finally, your controller object instance is destroyed
+    and its destructor (if any) is called
+*/
+
+/**
+  \page wexussessionspage Sessions
+
+  Sessions or session objects allow you to track/associate information
+  with a user across many distinct web accesses. On the web browser
+  side, this is implemented using HTTP cookies.
+
+  Wexus session objects must inherit from wexus::core:session_i
+  Your session objects also need to be serializable if you want
+  to use the file-based session object store (useful for debugging, where
+  you are constantly restarting the server).
+
+  Turbo provides you with a stock session object implementation,
+  wexus::turbo::user_session. This serializable object
+  provides some generic fields for user tracking, such
+  as userid, username, realname and email.
+  
+  wexus::turbo::user_session also provides a "notes" facility
+  (via inheritant from wexus::turbo::notes_session), which
+  is similar to Rails' "flash" concept. This associative map may be populated
+  by one handler, and then processed immediatly by the subsequent handler.
+
+  To use sessions, simply use the wexus::turbo::session_ptr
+  smart pointer as a member in your controller class, for example:
+
+  \verbatim
+    wexus::turbo::session_ptr<wexus::turbo::user_session> session;
+  \endverbatim
+
+  The pointer, during construction, will automatically be set
+  if a session is currently assigned to the user, and will be null otherwise.
+  You can assign a new session instance to this pointer to set a new
+  session, or set it to null to clear the attached object.
 */
 
 /**
