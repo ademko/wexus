@@ -169,10 +169,10 @@ class wexus::turbo::turbo_event : public wexus::core::app_event
     void clear_errors(void) { turbo.clear_errors(); }
 
     /// this version queues a note FOR THE NEXT page
-    /// this requires a session of atleast type turbo::user_session
+    /// this requires a session of atleast type turbo::notes_session
     void add_next_note(const std::string &msg);
     /// this version queues a note FOR THE NEXT page
-    /// this requires a session of atleast type turbo::user_session
+    /// this requires a session of atleast type turbo::notes_session
     void add_next_note(const std::string &name, const std::string &msg);
 
     /// adds a note msg to the root

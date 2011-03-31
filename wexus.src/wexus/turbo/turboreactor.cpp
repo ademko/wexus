@@ -203,11 +203,11 @@ void turbo_event::add_next_note(const std::string &msg)
 
 void turbo_event::add_next_note(const std::string &name, const std::string &msg)
 {
-  user_session *us = dynamic_cast<user_session*>(session);
+  notes_session *us = dynamic_cast<notes_session*>(session);
 
-  assert(us && "[called add_next_note without a valid, current wexus::turbo::user_session]\n");
+  assert(us && "[called add_next_note without a valid, current wexus::turbo::notes_session]\n");
 
-  us->notes.insert(user_session::notemap_t::value_type(name, msg));
+  us->notes.insert(notes_session::notemap_t::value_type(name, msg));
 }
 
 const std::string & turbo_event::get_form_field(const std::string &fieldname) const
@@ -265,7 +265,7 @@ bool turbo_reactor::handle_app_event(core::app_event &evt)
     turbo_event_data dat(m_sesmgr, m_dbpoolmgr);
     turbo_event evt2(evt.req, evt.front, evt.app, dat, 0);
     count_ptr<session_i> ses;
-    user_session *us = 0;
+    notes_session *us = 0;
 
     if (m_sesmgr) {
       assert(!evt2.session);
@@ -274,7 +274,7 @@ bool turbo_reactor::handle_app_event(core::app_event &evt)
       if (ses.get())
         evt2.session = ses.get();
 
-      us = dynamic_cast<user_session*>(ses.get());
+      us = dynamic_cast<notes_session*>(ses.get());
     }
 
     thread::set_tls(g_tlskey, &evt2);

@@ -35,6 +35,44 @@ std::string wexus::turbo::hash_password(const std::string &cleartext)
 
 //
 //
+// notes_session
+//
+//
+
+notes_session::notes_session(void)
+{
+}
+
+bool notes_session::load(scopira::tool::iobjflow_i& in)
+{
+  notes.clear();
+
+  return
+    session_i::load(in);
+}
+
+void notes_session::save(scopira::tool::oobjflow_i& out) const
+{
+  session_i::save(out);
+}
+
+void notes_session::flush_notes(void)
+{
+  if (notes.empty())
+    return;
+
+  notemap_t::iterator ii, endii;
+
+  endii = notes.end();
+  for (ii = notes.begin(); ii != endii; ++ii)
+    EVENT.add_note(ii->first, ii->second);
+
+  // flush em
+  notes.clear();
+}
+
+//
+//
 // user_session
 //
 //
@@ -59,7 +97,7 @@ bool user_session::load(scopira::tool::iobjflow_i& in)
   notes.clear();
 
   return
-    session_i::load(in) &&
+    notes_session::load(in) &&
 
     wexus::db::read_dbint(in, userid) &&
     wexus::db::read_dbint(in, rank) &&
@@ -70,27 +108,12 @@ bool user_session::load(scopira::tool::iobjflow_i& in)
 
 void user_session::save(scopira::tool::oobjflow_i& out) const
 {
-  session_i::save(out);
+  notes_session::save(out);
 
   wexus::db::write_dbint(out, userid);
   wexus::db::write_dbint(out, rank);
   username.save(out);
   realname.save(out);
   email.save(out);
-}
-
-void user_session::flush_notes(void)
-{
-  if (notes.empty())
-    return;
-
-  notemap_t::iterator ii, endii;
-
-  endii = notes.end();
-  for (ii = notes.begin(); ii != endii; ++ii)
-    EVENT.add_note(ii->first, ii->second);
-
-  // flush em
-  notes.clear();
 }
 

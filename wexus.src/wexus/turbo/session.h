@@ -21,6 +21,7 @@ namespace wexus
 {
   namespace turbo
   {
+    class notes_session;
     class user_session;
 
     /**
@@ -44,6 +45,32 @@ namespace wexus
 }
 
 /**
+ * All session types that want to use the notes system
+ * (common in Turbo) must decent from this.
+ *
+ * @author Aleksander Demko
+ */
+class wexus::turbo::notes_session : public virtual wexus::core::session_i
+{
+  public:
+    /// serialization
+    virtual bool load(scopira::tool::iobjflow_i& in);
+    /// serialization
+    virtual void save(scopira::tool::oobjflow_i& out) const;
+
+    /// called by the turbo system
+    void flush_notes(void);
+
+  protected:
+    /// protected ctor - you must inherit from this class
+    notes_session(void);
+
+  public:
+    typedef std::multimap<std::string, std::string> notemap_t;
+    notemap_t notes;    // rails like "flash" concept
+};
+
+/**
  * A session that contains information about a logged in user.
  *
  * This common interface can be shared among different tool kits
@@ -60,7 +87,7 @@ namespace wexus
  *
  * @author Aleksander Demko
  */
-class wexus::turbo::user_session : public virtual wexus::core::session_i
+class wexus::turbo::user_session : public wexus::turbo::notes_session
 {
   public:
     /// ctor
@@ -74,15 +101,9 @@ class wexus::turbo::user_session : public virtual wexus::core::session_i
     /// serialization
     virtual void save(scopira::tool::oobjflow_i& out) const;
 
-    /// called by the turbo system
-    void flush_notes(void);
-
   public:
     wexus::db::dbint userid, rank;
     wexus::db::dbstring username, realname, email;
-
-    typedef std::multimap<std::string, std::string> notemap_t;
-    notemap_t notes;    // rails like "flash" concept
 };
 
 #endif
